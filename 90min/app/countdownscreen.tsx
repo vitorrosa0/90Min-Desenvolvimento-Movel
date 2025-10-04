@@ -1,25 +1,32 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { useNavigation, NavigationProp } from '@react-navigation/native';
+import { StackNavigationProp } from '@react-navigation/stack';
+import { useNavigation } from '@react-navigation/native';
 
-// Define os nomes e parâmetros das rotas do Stack
+// Defina as rotas do seu stack
 type RootStackParamList = {
+  CountdownScreen: undefined;
   ChatScreen: undefined;
-  // adicione outras telas aqui se precisar
+  // outras telas...
 };
 
-export default function CronometroInicioEvento() {
-  const navigation = useNavigation<NavigationProp<RootStackParamList>>();
+// Especifique o tipo do navigation para incluir replace, push, etc.
+type CountdownScreenNavigationProp = StackNavigationProp<
+  RootStackParamList,
+  'CountdownScreen'
+>;
 
-  const [timeLeft, setTimeLeft] = useState<number>(900); // 900s = 15min
+export default function CronometroInicioEvento() {
+  const navigation = useNavigation<CountdownScreenNavigationProp>();
+  const [timeLeft, setTimeLeft] = useState<number>(900);
 
   useEffect(() => {
     if (timeLeft === 0) {
-      navigation.replace('ChatScreen');
+      navigation.replace('ChatScreen'); // agora funciona
     }
 
     const timer = setInterval(() => {
-      setTimeLeft(prevTime => (prevTime > 0 ? prevTime - 1 : 0));
+      setTimeLeft(prev => (prev > 0 ? prev - 1 : 0));
     }, 1000);
 
     return () => clearInterval(timer);
@@ -40,20 +47,7 @@ export default function CronometroInicioEvento() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#f5f5f5',
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 20,
-  },
-  timer: {
-    fontSize: 48,
-    fontWeight: 'bold',
-    color: '#1e90ff',
-  },
+  container: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#f5f5f5' },
+  title: { fontSize: 24, fontWeight: 'bold', marginBottom: 20 },
+  timer: { fontSize: 48, fontWeight: 'bold', color: '#1e90ff' },
 });
