@@ -1,25 +1,37 @@
-// app/login.tsx
 import React, { useState } from 'react';
-import { View, TextInput, Button, StyleSheet, Text, TouchableOpacity } from 'react-native';
+import { View, TextInput, Button, StyleSheet, Text, TouchableOpacity, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
+import { auth } from '../scripts/databases/firebase';
+import { signInWithEmailAndPassword } from 'firebase/auth';
 
 export default function Login() {
-  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
   const router = useRouter();
 
-  const handleLogin = () => {
-    // Aqui você faria validação real
-    router.replace('/home'); // Entra direto nas tabs
+  const handleLogin = async () => {
+    if (!email || !senha) {
+      Alert.alert('Erro', 'Preencha todos os campos');
+      return;
+    }
+
+    try {
+      await signInWithEmailAndPassword(auth, email, senha); // login real com Firebase
+      router.replace('/home'); // redireciona para a tela principal
+    } catch (error: any) {
+      Alert.alert('Erro no login', error.message);
+    }
   };
 
   return (
     <View style={styles.container}>
       <TextInput
-        placeholder="Username"
+        placeholder="Email"
         style={styles.input}
-        value={username}
-        onChangeText={setUsername}
+        value={email}
+        onChangeText={setEmail}
+        autoCapitalize="none"
+        keyboardType="email-address"
       />
       <TextInput
         placeholder="Senha"
