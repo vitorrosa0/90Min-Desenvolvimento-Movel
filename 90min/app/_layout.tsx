@@ -10,7 +10,7 @@ export default function RootLayout() {
 
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Slot /> {/* aqui é onde as rotas filhas vão renderizar */}
+      <Slot />
       <StatusBar style="auto" />
     </ThemeProvider>
   );

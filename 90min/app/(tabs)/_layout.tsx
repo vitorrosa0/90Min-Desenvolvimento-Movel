@@ -10,7 +10,8 @@ export default function TabLayout() {
         tabBarInactiveTintColor: 'gray',
       }}
     >
-      <Tabs.Screen name="home" options={{ title: 'Ao Vivo' }} />
+      <Tabs.Screen name="home" options={{ title: 'Home' }} />
+      <Tabs.Screen name="aovivo" options={{ title: 'Ao Vivo' }} />
       <Tabs.Screen name="perfil" options={{ title: 'Perfil' }} />
     </Tabs>
   );
