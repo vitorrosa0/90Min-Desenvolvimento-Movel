@@ -3,6 +3,8 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { MaskedTextInput } from 'react-native-mask-text';
+import { createUserWithEmailAndPassword } from 'firebase/auth';
+import { auth } from '@/scripts/databases/firebase';
 
 export default function Cadastro() {
   const [nome, setNome] = useState('');
@@ -24,24 +26,53 @@ export default function Cadastro() {
     return idade;
   };
 
-  const handleCadastro = () => {
-    if (!nome || !sobrenome || !username || !dataNascimento || !email || !senha || !confirmarSenha) {
-      Alert.alert('Erro', 'Preencha todos os campos!');
-      return;
-    }
-    const idade = calcularIdade(dataNascimento);
-    if (idade < 18) {
-      Alert.alert('Erro', 'Você precisa ter pelo menos 18 anos para se cadastrar.');
-      return;
-    }
-    if (senha !== confirmarSenha) {
-      Alert.alert('Erro', 'As senhas não conferem!');
-      return;
-    }
+  const handleCadastro = async () => {
+  console.log("➡️ Iniciando cadastro...");
+  console.log("Dados informados:", {
+    nome,
+    sobrenome,
+    username,
+    dataNascimento,
+    email,
+    senha,
+    confirmarSenha,
+  });
+
+  if (!nome || !sobrenome || !username || !dataNascimento || !email || !senha || !confirmarSenha) {
+    Alert.alert('Erro', 'Preencha todos os campos!');
+    console.log("❌ Campos obrigatórios faltando");
+    return;
+  }
+
+  const idade = calcularIdade(dataNascimento);
+  console.log("📅 Idade calculada:", idade);
+
+  if (idade < 18) {
+    Alert.alert('Erro', 'Você precisa ter pelo menos 18 anos para se cadastrar.');
+    console.log("❌ Usuário menor de 18 anos");
+    return;
+  }
+
+  if (senha !== confirmarSenha) {
+    Alert.alert('Erro', 'As senhas não conferem!');
+    console.log("❌ Senhas não conferem");
+    return;
+  }
+
+  try {
+    console.log("🔥 Chamando createUserWithEmailAndPassword...");
+    const userCredential = await createUserWithEmailAndPassword(auth, email, senha);
+    const user = userCredential.user;
+    console.log("✅ Usuário criado no Firebase:", user);
 
     Alert.alert('Sucesso', 'Cadastro realizado com sucesso!');
     router.replace('/login');
-  };
+  } catch (error: any) {
+    console.error("❌ Erro no Firebase Auth:", error);
+    Alert.alert('Erro no cadastro', error.message);
+  }
+};
+
 
   return (
     <View style={styles.container}>
@@ -57,9 +88,15 @@ export default function Cadastro() {
         onChangeText={setDataNascimento}
         keyboardType="numeric"
       />
-      <MaskedTextInput style={styles.input} placeholder="Email" value={email} onChangeText={setEmail} keyboardType="email-address" />
-      <MaskedTextInput style={styles.input} placeholder="Senha" value={senha} onChangeText={setSenha} secureTextEntry />
-      <MaskedTextInput style={styles.input} placeholder="Confirme a Senha" value={confirmarSenha} onChangeText={setConfirmarSenha} secureTextEntry />
+      <TextInput
+        style={styles.input}
+        placeholder="Email"
+        value={email}
+        onChangeText={setEmail}
+        keyboardType="email-address"
+      />
+      <TextInput style={styles.input} placeholder="Senha" value={senha} onChangeText={setSenha} secureTextEntry />
+      <TextInput style={styles.input} placeholder="Confirme a Senha" value={confirmarSenha} onChangeText={setConfirmarSenha} secureTextEntry />
       <TouchableOpacity style={styles.button} onPress={handleCadastro}>
         <Text style={styles.buttonText}>Cadastrar</Text>
       </TouchableOpacity>

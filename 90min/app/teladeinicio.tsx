@@ -29,7 +29,7 @@ export default function TelaDeInicio() {
   return (
     <View style={styles.container}>
       <Animated.Image
-        source={require('../assets/icon.png')} // logo do app
+        source={require('../assets/images/icon.png')} // logo do app
         style={[styles.logo, { opacity: fadeAnim }]}
         resizeMode="contain"
       />

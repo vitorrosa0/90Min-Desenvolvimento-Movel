@@ -1,8 +1,6 @@
-import { useEffect } from 'react';
-import { useRouter } from 'expo-router';
-import Login from './login';
+import TelaDeInicio from "./teladeinicio";
 
 export default function Index() {
 
-  return <Login />;
+  return <TelaDeInicio />;
 }
