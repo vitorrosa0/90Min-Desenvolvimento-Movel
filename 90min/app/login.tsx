@@ -1,55 +1,77 @@
 import React, { useState } from 'react';
-import { View, TextInput, Button, StyleSheet, Text, TouchableOpacity, Alert } from 'react-native';
+import { View, TextInput, Text, TouchableOpacity, Alert, Image } from 'react-native';
 import { useRouter } from 'expo-router';
 import { auth } from '../scripts/databases/firebase';
 import { signInWithEmailAndPassword } from 'firebase/auth';
+import { theme, colors } from '../scripts/styles/theme';
 
 export default function Login() {
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
+  const [error, setError] = useState<string | null>(null);
   const router = useRouter();
 
   const handleLogin = async () => {
+    setError(null);
+
     if (!email || !senha) {
-      Alert.alert('Erro', 'Preencha todos os campos');
+      setError('Preencha todos os campos');
       return;
     }
 
     try {
-      await signInWithEmailAndPassword(auth, email, senha); // login real com Firebase
-      router.replace('/home'); // redireciona para a tela principal
-    } catch (error: any) {
-      Alert.alert('Erro no login', error.message);
+      await signInWithEmailAndPassword(auth, email, senha);
+      router.replace('/home');
+    } catch (err: any) {
+      let message = 'Erro no login, verifique suas credenciais';
+      if (err.code === 'auth/invalid-email') {
+        message = 'Usuário não encontrado. Você pode se cadastrar no link abaixo.';
+      }
+      setError(message);
     }
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[theme.screen, { justifyContent: 'center', paddingVertical: 40 }]}>
+      <View style={{ alignItems: 'center' }}>
+        <Image 
+          source={require('../assets/images/icon-removebg-preview.png')}
+          style={{ width: 220, height: 220, resizeMode: 'contain' }}
+        />
+      </View>
+
       <TextInput
         placeholder="Email"
-        style={styles.input}
+        placeholderTextColor={colors.textSecondary}
+        style={[theme.input, { borderColor: colors.primary }]}
         value={email}
         onChangeText={setEmail}
         autoCapitalize="none"
         keyboardType="email-address"
       />
+
       <TextInput
         placeholder="Senha"
+        placeholderTextColor={colors.textSecondary}
         secureTextEntry
-        style={styles.input}
+        style={[theme.input, { borderColor: colors.primary }]}
         value={senha}
         onChangeText={setSenha}
       />
-      <Button title="Login" onPress={handleLogin} />
+
+      {error && (
+        <Text style={{ color: colors.error, textAlign: 'center', marginBottom: 10 }}>
+          {error}
+        </Text>
+      )}
+
+      <TouchableOpacity style={theme.button} onPress={handleLogin}>
+        <Text style={theme.buttonText}>Entrar</Text>
+      </TouchableOpacity>
+
       <TouchableOpacity onPress={() => router.push('/cadastro')}>
-        <Text style={styles.linkText}>Não tem conta? Cadastre-se</Text>
+        <Text style={theme.linkText}>Não tem conta? Cadastre-se</Text>
       </TouchableOpacity>
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, justifyContent: 'center', padding: 20 },
-  input: { borderWidth: 1, borderColor: '#ccc', borderRadius: 5, padding: 10, marginBottom: 10 },
-  linkText: { marginTop: 15, color: '#007AFF', textAlign: 'center', fontWeight: 'bold' },
-});
