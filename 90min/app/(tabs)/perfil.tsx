@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, FlatList, Image, TouchableOpacity } from 'react-native';
 import { colors, theme } from '@/scripts/styles/theme';
+import Storage from '@/scripts/utils/storage';
 
 const usuario = {
   nome: "Nome do Usuário",
@@ -13,11 +14,31 @@ const usuario = {
 };
 
 export default function PerfilScreen() {
+  const storage = new Storage();
+  const [nome, setNome] = useState("");
+
+  useEffect(() => {
+    const carregarUsuario = async () => {
+      try {
+        const user = await storage.getContent('user');
+        console.log("🧠 Usuário recuperado do AsyncStorage:", user);
+        if (user && user.nome) {
+          setNome(user.nome);
+        } 
+
+      } catch (error) {
+        console.error("Erro ao carregar usuário:", error);
+      }
+    };
+
+    carregarUsuario();
+  }, []);
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
         <Image source={require('../../assets/images/icon-perfil.png')} style={styles.avatar} />
-        <Text style={styles.nome}>{usuario.nome}</Text>
+        <Text style={styles.nome}>{nome}</Text>
       </View>
       <View style={styles.separator} />
       <Text style={styles.sectionTitle}>Eventos Recentes</Text>
