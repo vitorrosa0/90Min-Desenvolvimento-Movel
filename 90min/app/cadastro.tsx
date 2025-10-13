@@ -6,6 +6,7 @@ import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { auth, db } from '@/scripts/databases/firebase';
 import { theme, colors } from '@/scripts/styles/theme';
 import { doc, setDoc } from 'firebase/firestore';
+import Storage from '@/scripts/utils/storage';
 
 export default function Cadastro() {
   const [nome, setNome] = useState('');
@@ -15,6 +16,7 @@ export default function Cadastro() {
   const [senha, setSenha] = useState('');
   const [confirmarSenha, setConfirmarSenha] = useState('');
   const router = useRouter();
+  const storage = new Storage();
 
   const calcularIdade = (data: string) => {
     const [dia, mes, ano] = data.split('/');
@@ -51,13 +53,27 @@ export default function Cadastro() {
       const userCredential = await createUserWithEmailAndPassword(auth, email, senha);
       const user = userCredential.user;
       console.log("✅ Usuário criado no Firebase:", user.uid);
-      await setDoc(doc(db, "users", user.uid), {
+      // await setDoc(doc(db, "users", user.uid), {
+      //   nome,
+      //   username,
+      //   dataNascimento,
+      //   email,
+      //   createdAt: new Date(),
+      // });
+
+      await storage.saveContent('user', {
+        uid: user.uid,
         nome,
         username,
         dataNascimento,
         email,
-        createdAt: new Date(),
+        createdAt: new Date().toISOString(),
       });
+
+      console.log("💾 Dados do usuário salvos localmente!");
+      const userlog = await storage.getContent('user')
+      console.log(userlog)
+
       router.replace('/login');
     } catch (error: any) {
       console.error("❌ Erro no Firebase Auth:", error);
