@@ -1,7 +1,7 @@
 export function gerarMensagensMock(quantidade) {
-  const nomes = ['João', 'Maria', 'Pedro', 'Ana', 'Carlos', 'Sofia', 'Lucas', 'Laura', 'Gabriel', 'Beatriz', 'Felipe', 'Julia'];
+  const nomes = ['João', 'Maria', 'Pedro', 'Ana', 'Gustavo', 'Sofia', 'Lucas', 'Laura', 'Gabriel', 'Vítor', 'Felipe', 'Julia'];
   const textosVariados = [
-    'Vai ser um jogão!', 'Vamos Mengão 🔥', 'Achei que o jogo estaria mais fácil.', 'Que golaço, não esperava!',
+    'Vai ser um jogão!', 'Vamos Vascão 🔥💢', 'Achei que o jogo estaria mais fácil.', 'Que golaço, não esperava!',
     'Alguém viu a repetição do lance?', 'Estou muito animado para o segundo tempo.', 'A defesa precisa ficar mais atenta.',
     'Mandem suas apostas para o placar final!', 'Concordo plenamente.', 'Não sei, acho que não...',
     'Quero ver a reação do técnico.', 'Que jogada incrível do meio-campo!', 'Isso é falta clara!',
