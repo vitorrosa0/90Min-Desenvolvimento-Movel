@@ -2,10 +2,13 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, FlatList, Image, TouchableOpacity } from 'react-native';
 import { colors, theme } from '@/scripts/styles/theme';
 import Storage from '@/scripts/utils/storage';
+import StorageFirebase from '../../scripts/databases/storageFirebase'
+
+const storageFirebase = new StorageFirebase();
 
 const usuario = {
   nome: "Nome do Usuário",
-  foto: "https://pt.pngtree.com/freepng/avatar-icon-profile-icon-member-login-vector-isolated_5247852.html",
+  email: "usuario@email.com",
   eventos: [
     { id: '1', jogo: "Flamengo x Vasco" },
     { id: '2', jogo: "Palmeiras x São Paulo" },
@@ -13,24 +16,45 @@ const usuario = {
   ]
 };
 
+interface Content {
+  email: string;
+  nome: string;
+}
+
+
 export default function PerfilScreen() {
   const storage = new Storage();
+  const [contents, setContents] = useState<Content[]>([]);
   const [nome, setNome] = useState("");
+  const [userName, setUserName] = useState("");
+  const [email, setEmail] = useState("");
+
+  useEffect(() => {
+    storageFirebase.listContents(setContents)
+  }, [])
+
+  const renderContent = () => {
+    return (
+      contents.map((content, index) => {
+        <>
+          <Text style={styles.detail}> {content.email}</Text>
+        </>
+      })
+    )
+  }
 
   useEffect(() => {
     const carregarUsuario = async () => {
       try {
         const user = await storage.getContent('user');
         console.log("🧠 Usuário recuperado do AsyncStorage:", user);
-        if (user && user.nome) {
-          setNome(user.nome);
-        } 
-
+        if (user?.nome) setNome(user.nome);
+        if (user?.username) setUserName(user.username);
+        if (user?.email) setEmail(user.email);
       } catch (error) {
         console.error("Erro ao carregar usuário:", error);
       }
     };
-
     carregarUsuario();
   }, []);
 
@@ -38,8 +62,15 @@ export default function PerfilScreen() {
     <View style={styles.container}>
       <View style={styles.header}>
         <Image source={require('../../assets/images/icon-perfil.png')} style={styles.avatar} />
-        <Text style={styles.nome}>{nome}</Text>
+        <View style={styles.userInfo}>
+          <Text style={styles.nome}>{nome}</Text>
+          <View style={styles.row}>
+            <Text style={styles.detail}>Usuário: {userName}</Text>
+            <Text style={styles.detail}>  •  Email: {email}</Text>
+          </View>
+        </View>
       </View>
+
       <View style={styles.separator} />
       <Text style={styles.sectionTitle}>Eventos Recentes</Text>
       <FlatList
@@ -62,12 +93,12 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 20,
     backgroundColor: colors.surface,
     padding: 16,
     borderRadius: 12,
     borderWidth: 1,
     borderColor: colors.border,
+    marginBottom: 20,
   },
   avatar: {
     width: 70,
@@ -77,10 +108,21 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: colors.primary,
   },
+  userInfo: {
+    flex: 1,
+  },
   nome: {
     color: colors.textPrimary,
     fontSize: 22,
     fontWeight: "bold",
+  },
+  row: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+  },
+  detail: {
+    color: colors.textSecondary,
+    fontSize: 14,
   },
   separator: {
     height: 1,
