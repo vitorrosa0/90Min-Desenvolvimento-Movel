@@ -19,7 +19,7 @@ export default function TabLayout() {
           backgroundColor: colors.primary,
           height: 60,
           margin: 0,
-          paddingBottom: 5, 
+          paddingBottom: 5,
           paddingTop: 5,
         },
       }}
@@ -29,14 +29,14 @@ export default function TabLayout() {
         options={{
           title: 'Home',
           headerStyle: {
-            backgroundColor: "#000", 
+            backgroundColor: "#000",
             borderBottomWidth: 2,
             borderBottomColor: "#0077FF",
           },
-          
+
           headerTitle: () => (
             <Image
-              source={require("@/assets/images/icon-removebg-preview.png")} 
+              source={require("@/assets/images/icon-removebg-preview.png")}
               style={{
                 width: 80,
                 height: 80,
@@ -55,15 +55,15 @@ export default function TabLayout() {
         name="aovivo"
         options={{
           title: 'Ao Vivo',
-                    headerStyle: {
-            backgroundColor: "#000", 
+          headerStyle: {
+            backgroundColor: "#000",
             borderBottomWidth: 2,
             borderBottomColor: "#0077FF",
           },
-          
+
           headerTitle: () => (
             <Image
-              source={require("@/assets/images/icon-removebg-preview.png")} 
+              source={require("@/assets/images/icon-removebg-preview.png")}
               style={{
                 width: 80,
                 height: 80,
@@ -82,15 +82,15 @@ export default function TabLayout() {
         name="perfil"
         options={{
           title: 'Perfil',
-                    headerStyle: {
-            backgroundColor: "#000", 
+          headerStyle: {
+            backgroundColor: "#000",
             borderBottomWidth: 2,
             borderBottomColor: "#0077FF",
           },
-          
+
           headerTitle: () => (
             <Image
-              source={require("@/assets/images/icon-removebg-preview.png")} 
+              source={require("@/assets/images/icon-removebg-preview.png")}
               style={{
                 width: 80,
                 height: 80,
@@ -104,6 +104,15 @@ export default function TabLayout() {
           ),
         }}
       />
+
+      <Tabs.Screen
+        name="cronometro"
+        options={{
+          headerShown: false,
+          href: null,
+        }}
+      />
+
     </Tabs>
   );
 }

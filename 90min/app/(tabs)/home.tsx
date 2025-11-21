@@ -8,7 +8,7 @@ export default function HomeScreen() {
 
   const handleScanQRCode = () => {
     console.log("📷 Escanear QRCode — redirecionando...");
-    router.push("/countdownscreen");
+    router.push("../cronometro");
   };
 
   // 🔹 Lista de jogos fictícia
