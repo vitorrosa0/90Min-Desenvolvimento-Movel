@@ -45,7 +45,7 @@ export default function HomeScreen() {
               onPress={handleScanQRCode}
             >
               <Text style={styles.cardText}>{item.jogo}</Text>
-              <Text style={styles.cardSubtext}>⏰ {item.horario}</Text>
+              <Text style={styles.cardSubtext}>{item.horario}</Text>
             </TouchableOpacity>
           )}
         />

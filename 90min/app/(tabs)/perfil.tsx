@@ -21,7 +21,6 @@ interface Content {
   nome: string;
 }
 
-
 export default function PerfilScreen() {
   const storage = new Storage();
   const [contents, setContents] = useState<Content[]>([]);
