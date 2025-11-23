@@ -1,17 +1,18 @@
-import firebase from "./firebase"
+import { collection, onSnapshot } from "firebase/firestore";
+import firebase, { db } from "./firebase"
 
 export default class StorageFirebase {
     listContents(onContentUpdate) {
-        firebase.firestore.collections("user").onSnapshot(
-            (query) => {
-                let contents = [];//vetor temporario
-                query.forEach((doc) => { 
+        const ref = collection(db, "user");
 
-                    const { email, nome } = doc.data(); // filtragem de campos
-                    contents.push({email, nome}); // preenche o vetor
-                });
-                onContentUpdate(contents);
-            }
-        )
+        return onSnapshot(ref, (snapshot) => {
+            const contents = [];
+            snapshot.forEach((doc) => {
+                const { email, nome } = doc.data();
+                contents.push({ email, nome });
+            });
+            
+            onContentUpdate(contents);
+        });
     }
 }

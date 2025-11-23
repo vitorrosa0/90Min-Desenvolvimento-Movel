@@ -1,24 +1,66 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, TextInput, TouchableOpacity, FlatList, KeyboardAvoidingView, Platform } from 'react-native';
-import { gerarMensagensMock } from '../mockMessages'; 
+import { gerarMensagensMock } from '../mockMessages';
+import { useLocalSearchParams } from 'expo-router';
+import { auth, db } from "@/scripts/databases/firebase";
+import { collection, addDoc } from "firebase/firestore";
 
 const MOCK_MENSAGENS_INICIAIS = gerarMensagensMock(100);
 
-export default function ChatAoVivo() {
-  const nomeEvento = "Flamengo x Vasco";
-  const [mensagem, setMensagem] = useState('');
-  const [mensagens, setMensagens] = useState(MOCK_MENSAGENS_INICIAIS);  
+type Mensagem = {
+  id: string;
+  autor: string;
+  texto: string;
+};
 
-  const enviarMensagem = () => {
+export default function ChatAoVivo() {
+  const { eventId, eventName } = useLocalSearchParams();
+
+  const [mensagens, setMensagens] = useState<Mensagem[]>([]);
+  const [mensagem, setMensagem] = useState('');
+
+  const indexRef = useRef(0);
+  const timerRef = useRef<number | null>(null);
+
+  const dispararMensagensGradualmente = () => {
+    if (indexRef.current >= MOCK_MENSAGENS_INICIAIS.length) return;
+
+    setMensagens(prev => [...prev, MOCK_MENSAGENS_INICIAIS[indexRef.current]]);
+    indexRef.current++;
+
+    const delay = Math.floor(Math.random() * 3000) + 2000;
+
+    timerRef.current = setTimeout(dispararMensagensGradualmente, delay);
+  };
+
+  useEffect(() => {
+    dispararMensagensGradualmente();
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
+  }, []);
+
+  const enviarMensagem = async () => {
     if (mensagem.trim().length === 0) return;
 
-    const novaMensagem = {
+    const novaMensagem: Mensagem = {
       id: Date.now().toString(),
-      autor: 'Você',
+      autor: "Você",
       texto: mensagem,
     };
-    setMensagens([...mensagens, novaMensagem]);
+
+    setMensagens(prev => [...prev, novaMensagem]);
     setMensagem('');
+
+    const userId = auth.currentUser?.uid;
+    if (!userId) return;
+
+    await addDoc(collection(db, "messages"), {
+      userId,
+      eventId,
+      lastMessage: mensagem,
+      sentAt: new Date(),
+    });
   };
 
   return (
@@ -28,7 +70,7 @@ export default function ChatAoVivo() {
     >
       <View style={{ padding: 16, backgroundColor: '#1f1f1f', borderBottomWidth: 1, borderBottomColor: '#333' }}>
         <Text style={{ color: '#fff', fontSize: 20, fontWeight: 'bold', textAlign: 'center' }}>
-          📡 {nomeEvento}
+          📡 {eventName}
         </Text>
       </View>
 
@@ -77,6 +119,7 @@ export default function ChatAoVivo() {
           value={mensagem}
           onChangeText={setMensagem}
         />
+
         <TouchableOpacity
           onPress={enviarMensagem}
           style={{

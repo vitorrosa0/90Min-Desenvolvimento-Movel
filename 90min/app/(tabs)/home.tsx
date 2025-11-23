@@ -11,7 +11,6 @@ export default function HomeScreen() {
     router.push("../cronometro");
   };
 
-  // 🔹 Lista de jogos fictícia
   const outrosJogos = [
     { id: "1", jogo: "Flamengo x Vasco", horario: "18:00" },
     { id: "2", jogo: "Palmeiras x São Paulo", horario: "20:00" },
@@ -20,7 +19,6 @@ export default function HomeScreen() {
 
   return (
     <View style={[theme.screen, { justifyContent: "flex-start" }]}>
-      {/* Seção 1: Chat da partida */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Acesse o chat da sua partida</Text>
         <TouchableOpacity
@@ -31,7 +29,6 @@ export default function HomeScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* Seção 2: Outros jogos */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Outros jogos</Text>
 
@@ -42,7 +39,15 @@ export default function HomeScreen() {
             <TouchableOpacity
               style={styles.card}
               activeOpacity={0.8}
-              onPress={handleScanQRCode}
+              onPress={() =>
+                router.push({
+                  pathname: "../cronometro",
+                  params: {
+                    eventId: item.id,
+                    eventName: item.jogo,
+                  },
+                })
+              }
             >
               <Text style={styles.cardText}>{item.jogo}</Text>
               <Text style={styles.cardSubtext}>{item.horario}</Text>

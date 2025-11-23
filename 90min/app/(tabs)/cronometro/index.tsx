@@ -1,35 +1,56 @@
 import React, { useEffect, useState } from "react";
 import { View, Text, StyleSheet } from "react-native";
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { colors } from "@/scripts/styles/theme";
+import { auth, db } from "@/scripts/databases/firebase";
+import { addDoc, collection } from "firebase/firestore";
 
 export default function CronometroInicioEvento() {
-  // ⏱ Tempo inicial (10 segundos para teste, pode ajustar para 900 = 15min)
+  const { eventId, eventName } = useLocalSearchParams();
   const [timeLeft, setTimeLeft] = useState(10);
   const router = useRouter();
 
+  async function registrarEntradaNoEvento() {
+    const userId = auth.currentUser?.uid;
+    if (!userId || !eventId || !eventName) return;
+
+    await addDoc(collection(db, "events"), {
+      userId,
+      eventId,
+      eventName,
+      joinedAt: new Date(),
+    });
+  }
+
+  useEffect(() => {
+    if (!eventId || !eventName) return;
+
+    setTimeLeft(10);
+    registrarEntradaNoEvento();
+  }, [eventId, eventName]);
+
   useEffect(() => {
     if (timeLeft === 0) {
-      router.replace("/aovivo"); // redireciona para a tela de transmissão ao vivo
+      router.replace({
+        pathname: "/aovivo",
+        params: { eventId, eventName },
+      });
       return;
     }
 
-    const timer = setInterval(() => {
-      setTimeLeft((prev) => (prev > 0 ? prev - 1 : 0));
+    const timer = setTimeout(() => {
+      setTimeLeft((prev) => prev - 1);
     }, 1000);
 
-    return () => clearInterval(timer);
+    return () => clearTimeout(timer);
   }, [timeLeft]);
-
-  const minutes = Math.floor(timeLeft / 60);
-  const seconds = timeLeft % 60;
 
   return (
     <View style={styles.container}>
       <Text style={styles.title}>⏳ O evento começará em breve</Text>
       <Text style={styles.timer}>
-        {minutes.toString().padStart(2, "0")}:
-        {seconds.toString().padStart(2, "0")}
+        {String(Math.floor(timeLeft / 60)).padStart(2, "0")}:
+        {String(timeLeft % 60).padStart(2, "0")}
       </Text>
       <Text style={styles.subtext}>Prepare-se para entrar no chat ao vivo</Text>
     </View>
@@ -52,7 +73,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   timer: {
-    color: colors.primary, 
+    color: colors.primary,
     fontSize: 48,
     fontWeight: "bold",
     letterSpacing: 2,

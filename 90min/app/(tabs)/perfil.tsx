@@ -2,23 +2,20 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, FlatList, Image, TouchableOpacity } from 'react-native';
 import { colors, theme } from '@/scripts/styles/theme';
 import Storage from '@/scripts/utils/storage';
-import StorageFirebase from '../../scripts/databases/storageFirebase'
+import StorageFirebase from '../../scripts/databases/storageFirebase';
+import { auth, db } from "@/scripts/databases/firebase";
+import { collection, onSnapshot, query, where } from "firebase/firestore";
 
 const storageFirebase = new StorageFirebase();
-
-const usuario = {
-  nome: "Nome do Usuário",
-  email: "usuario@email.com",
-  eventos: [
-    { id: '1', jogo: "Flamengo x Vasco" },
-    { id: '2', jogo: "Palmeiras x São Paulo" },
-    { id: '3', jogo: "Corinthians x Santos" },
-  ]
-};
 
 interface Content {
   email: string;
   nome: string;
+}
+
+interface Evento {
+  id: string;
+  eventName: string;
 }
 
 export default function PerfilScreen() {
@@ -28,25 +25,38 @@ export default function PerfilScreen() {
   const [userName, setUserName] = useState("");
   const [email, setEmail] = useState("");
 
-  useEffect(() => {
-    storageFirebase.listContents(setContents)
-  }, [])
+  const [eventos, setEventos] = useState<Evento[]>([]);
+  const [eventoSelecionado, setEventoSelecionado] = useState<string | null>(null);
 
-  const renderContent = () => {
-    return (
-      contents.map((content, index) => {
-        <>
-          <Text style={styles.detail}> {content.email}</Text>
-        </>
-      })
-    )
-  }
+  const [mensagens, setMensagens] = useState<string[]>([]);
+  const [unsubscribeMsgs, setUnsubscribeMsgs] = useState<null | (() => void)>(null);
+
+  useEffect(() => {
+    storageFirebase.listContents(setContents);
+  }, []);
+
+  useEffect(() => {
+    const user = auth.currentUser;
+    if (!user) return;
+
+    const ref = collection(db, "user", user.uid, "events");
+
+    return onSnapshot(ref, (snapshot) => {
+      const evts: Evento[] = [];
+      snapshot.forEach((doc) => {
+        evts.push({
+          id: doc.id,
+          eventName: doc.data().eventName,
+        });
+      });
+      setEventos(evts);
+    });
+  }, []);
 
   useEffect(() => {
     const carregarUsuario = async () => {
       try {
-        const user = await storage.getContent('user');
-        console.log("🧠 Usuário recuperado do AsyncStorage:", user);
+        const user = await storage.getContent("user");
         if (user?.nome) setNome(user.nome);
         if (user?.username) setUserName(user.username);
         if (user?.email) setEmail(user.email);
@@ -57,12 +67,50 @@ export default function PerfilScreen() {
     carregarUsuario();
   }, []);
 
+  const carregarMensagensDoEvento = async (eventId: string) => {
+    const userId = auth.currentUser?.uid;
+    if (!userId) return;
+
+    setEventoSelecionado(eventId);
+    setMensagens([]);
+
+    if (unsubscribeMsgs) unsubscribeMsgs();
+
+    const ref = collection(db, "messages");
+
+    const q = query(
+      ref,
+      where("eventId", "==", eventId),
+      where("userId", "==", userId)
+    );
+
+    const unsub = onSnapshot(q, (snapshot) => {
+      const msgs: string[] = [];
+
+      snapshot.forEach((doc) => {
+        const data = doc.data();
+        if (data?.lastMessage) msgs.push(data.lastMessage);
+      });
+
+      setMensagens(msgs);
+    });
+
+    setUnsubscribeMsgs(() => unsub);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (unsubscribeMsgs) unsubscribeMsgs();
+    };
+  }, [unsubscribeMsgs]);
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
         <Image source={require('../../assets/images/icon-perfil.png')} style={styles.avatar} />
         <View style={styles.userInfo}>
           <Text style={styles.nome}>{nome}</Text>
+
           <View style={styles.row}>
             <Text style={styles.detail}>Usuário: {userName}</Text>
             <Text style={styles.detail}>  •  Email: {email}</Text>
@@ -72,12 +120,33 @@ export default function PerfilScreen() {
 
       <View style={styles.separator} />
       <Text style={styles.sectionTitle}>Eventos Recentes</Text>
+
       <FlatList
-        data={usuario.eventos}
+        data={eventos}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
-          <TouchableOpacity style={styles.card} activeOpacity={0.8}>
-            <Text style={styles.cardText}>{item.jogo}</Text>
+          <TouchableOpacity
+            style={styles.card}
+            activeOpacity={0.8}
+            onPress={() => carregarMensagensDoEvento(item.id)}
+          >
+            <Text style={styles.cardText}>{item.eventName}</Text>
+
+            {eventoSelecionado === item.id && (
+              <View style={{ marginTop: 10 }}>
+                {mensagens.length === 0 ? (
+                  <Text style={{ color: colors.textSecondary }}>
+                    Você não interagiu nesse chat ainda.
+                  </Text>
+                ) : (
+                  mensagens.map((m, index) => (
+                    <Text key={index} style={{ color: colors.textPrimary }}>
+                      • {m}
+                    </Text>
+                  ))
+                )}
+              </View>
+            )}
           </TouchableOpacity>
         )}
       />
@@ -86,9 +155,7 @@ export default function PerfilScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    ...theme.screen,
-  },
+  container: { ...theme.screen },
   header: {
     flexDirection: "row",
     alignItems: "center",
@@ -107,22 +174,14 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: colors.primary,
   },
-  userInfo: {
-    flex: 1,
-  },
+  userInfo: { flex: 1 },
   nome: {
     color: colors.textPrimary,
     fontSize: 22,
     fontWeight: "bold",
   },
-  row: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-  },
-  detail: {
-    color: colors.textSecondary,
-    fontSize: 14,
-  },
+  row: { flexDirection: "row", flexWrap: "wrap" },
+  detail: { color: colors.textSecondary, fontSize: 14 },
   separator: {
     height: 1,
     backgroundColor: colors.border,
