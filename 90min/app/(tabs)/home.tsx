@@ -1,24 +1,58 @@
-import React from "react";
-import { View, Text, TouchableOpacity, StyleSheet, FlatList } from "react-native";
+import React, { useEffect, useState } from "react";
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  FlatList,
+  ScrollView,
+} from "react-native";
 import { useRouter } from "expo-router";
 import { theme, colors } from "@/scripts/styles/theme";
 
 export default function HomeScreen() {
   const router = useRouter();
+  const [jogos, setJogos] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const API_URL = "http://localhost:3000/api/jogos";
+
+  useEffect(() => {
+    async function fetchJogos() {
+      try {
+        const response = await fetch(API_URL);
+        const data = await response.json();
+        setJogos(data);
+      } catch (err) {
+        console.error("Erro ao buscar jogos", err);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchJogos();
+  }, []);
 
   const handleScanQRCode = () => {
-    console.log("📷 Escanear QRCode — redirecionando...");
     router.push("../cronometro");
   };
 
-  const outrosJogos = [
-    { id: "1", jogo: "Flamengo x Vasco", horario: "18:00" },
-    { id: "2", jogo: "Palmeiras x São Paulo", horario: "20:00" },
-    { id: "3", jogo: "Corinthians x Santos", horario: "21:30" },
-  ];
+  if (loading) {
+    return (
+      <View style={[theme.screen, { justifyContent: "center" }]}>
+        <Text style={{ color: colors.textPrimary, fontSize: 18 }}>
+          Carregando jogos...
+        </Text>
+      </View>
+    );
+  }
 
   return (
-    <View style={[theme.screen, { justifyContent: "flex-start" }]}>
+    <ScrollView
+      style={theme.screen}
+      contentContainerStyle={{ paddingBottom: 40 }}
+      showsVerticalScrollIndicator={false}
+    >
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Acesse o chat da sua partida</Text>
         <TouchableOpacity
@@ -33,29 +67,44 @@ export default function HomeScreen() {
         <Text style={styles.sectionTitle}>Outros jogos</Text>
 
         <FlatList
-          data={outrosJogos}
+          data={jogos}
+          scrollEnabled={false} // 👈 evita conflito com ScrollView
           keyExtractor={(item) => item.id}
-          renderItem={({ item }) => (
-            <TouchableOpacity
-              style={styles.card}
-              activeOpacity={0.8}
-              onPress={() =>
-                router.push({
-                  pathname: "../cronometro",
-                  params: {
-                    eventId: item.id,
-                    eventName: item.jogo,
-                  },
-                })
-              }
-            >
-              <Text style={styles.cardText}>{item.jogo}</Text>
-              <Text style={styles.cardSubtext}>{item.horario}</Text>
-            </TouchableOpacity>
-          )}
+          renderItem={({ item }) => {
+            const partida = item.jogo;
+            const horario = new Date(item.horario)
+              .toLocaleTimeString("pt-BR", {
+                hour: "2-digit",
+                minute: "2-digit",
+              })
+              .replace(":", "h");
+
+            return (
+              <TouchableOpacity
+                style={styles.card}
+                activeOpacity={0.8}
+                onPress={() =>
+                  router.push({
+                    pathname: "../cronometro",
+                    params: {
+                      eventId: item.id,
+                      eventName: partida,
+                    },
+                  })
+                }
+              >
+                <View style={styles.row}>
+                  <View style={{ flex: 1, marginHorizontal: 10 }}>
+                    <Text style={styles.cardText}>{partida}</Text>
+                    <Text style={styles.cardSubtext}>{horario}</Text>
+                  </View>
+                </View>
+              </TouchableOpacity>
+            );
+          }}
         />
       </View>
-    </View>
+    </ScrollView>
   );
 }
 
@@ -77,6 +126,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
     marginBottom: 10,
+  },
+  row: {
+    flexDirection: "row",
+    alignItems: "center",
   },
   cardText: {
     color: colors.textPrimary,
