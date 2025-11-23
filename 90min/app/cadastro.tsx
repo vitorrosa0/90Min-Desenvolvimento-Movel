@@ -53,15 +53,15 @@ export default function Cadastro() {
       const userCredential = await createUserWithEmailAndPassword(auth, email, senha);
       const user = userCredential.user;
       console.log("✅ Usuário criado no Firebase:", user.uid);
-      // await setDoc(doc(db, "users", user.uid), {
-      //   nome,
-      //   username,
-      //   dataNascimento,
-      //   email,
-      //   createdAt: new Date(),
-      // });
+      await setDoc(doc(db, "users", user.uid), {
+        nome,
+        username,
+        dataNascimento,
+        email,
+        createdAt: new Date().toISOString(),
+      });
 
-      await storage.saveContent('user', {
+      await storage.saveContent('users', {
         uid: user.uid,
         nome,
         username,

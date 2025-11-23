@@ -3,7 +3,7 @@ import firebase, { db } from "./firebase"
 
 export default class StorageFirebase {
     listContents(onContentUpdate) {
-        const ref = collection(db, "user");
+        const ref = collection(db, "users");
 
         return onSnapshot(ref, (snapshot) => {
             const contents = [];
