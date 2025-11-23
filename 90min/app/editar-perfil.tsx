@@ -49,7 +49,6 @@ export default function EditarPerfil() {
         return;
       }
 
-      // Atualizar dados no AsyncStorage
       const userData = await storage.getContent("user");
       await storage.saveContent('user', {
         ...userData,
@@ -60,7 +59,6 @@ export default function EditarPerfil() {
 
       console.log("✅ Dados atualizados com sucesso!");
       
-      // Redireciona para a tela de perfil após salvar
       setLoading(false);
       router.push('/(tabs)/perfil');
     } catch (error: any) {

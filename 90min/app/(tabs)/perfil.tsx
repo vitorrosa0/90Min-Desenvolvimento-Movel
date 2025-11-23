@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { View, Text, StyleSheet, FlatList, Image, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, FlatList, Image, TouchableOpacity, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 import { colors, theme } from '@/scripts/styles/theme';
@@ -7,6 +7,7 @@ import Storage from '@/scripts/utils/storage';
 import StorageFirebase from '../../scripts/databases/storageFirebase';
 import { auth, db } from "@/scripts/databases/firebase";
 import { collection, onSnapshot, query, where } from "firebase/firestore";
+import { signOut } from 'firebase/auth';
 
 const storageFirebase = new StorageFirebase();
 
@@ -115,23 +116,72 @@ export default function PerfilScreen() {
     };
   }, [unsubscribeMsgs]);
 
+  const executarLogout = async () => {
+    try {
+      const userData = await storage.getContent("user");
+      
+      if (unsubscribeMsgs) {
+        console.log("🔌 Cancelando subscriptions...");
+        unsubscribeMsgs();
+        setUnsubscribeMsgs(null);
+      }
+
+      await signOut(auth);
+      
+      const allKeys = await storage.getKeys();
+      for (const key of allKeys) {
+        if (key !== "user") {
+          await storage.deleteContent(key);
+        }
+      }
+      
+      if (userData) {
+        await storage.saveContent("user", userData);
+      }
+
+      const currentUser = auth.currentUser;
+
+      await new Promise(resolve => setTimeout(resolve, 300));
+      
+      router.replace('/login');
+      
+      setTimeout(() => {
+        router.push('/login');
+      }, 500);
+      
+    } catch (error: any) {
+      Alert.alert('Erro', `Não foi possível fazer logout: ${error.message || 'Erro desconhecido'}`);
+    }
+  };
+
+  const handleLogout = () => {
+    executarLogout();
+  };
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
         <Image source={require('../../assets/images/icon-perfil.png')} style={styles.avatar} />
         <View style={styles.userInfo}>
-          <TouchableOpacity
-            onPress={() => router.push('/editar-perfil')}
-            activeOpacity={0.7}
-          >
-            <View style={styles.nomeContainer}>
-              <Text style={styles.nome}>{nome || 'Carregando...'}</Text>
+          <View style={styles.nomeContainer}>
+            <Text style={styles.nome}>{userName || nome || 'Carregando...'}</Text>
+            <TouchableOpacity
+              onPress={() => router.push('/editar-perfil')}
+              activeOpacity={0.7}
+            >
               <Text style={styles.editIcon}>✏️</Text>
-            </View>
-          </TouchableOpacity>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={handleLogout}
+              activeOpacity={0.7}
+              style={styles.logoutButton}
+            >
+              <Text style={styles.logoutText}>Sair</Text>
+            </TouchableOpacity>
+          </View>
 
           <View style={styles.row}>
-            <Text style={styles.detail}>Usuário: {userName}</Text>
+            <Text style={styles.detail}>Nome: {nome || 'Não informado'}</Text>
             <Text style={styles.detail}>Email: {email}</Text>
           </View>
         </View>
@@ -204,9 +254,19 @@ const styles = StyleSheet.create({
     fontSize: 22,
     fontWeight: "bold",
     marginRight: 8,
+    flex: 1,
   },
   editIcon: {
     fontSize: 16,
+    marginLeft: 4,
+  },
+  logoutButton: {
+    marginLeft: 8,
+  },
+  logoutText: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    opacity: 0.8,
   },
   row: { flexDirection: "row", flexWrap: "wrap" },
   detail: { color: colors.textSecondary, fontSize: 14 },

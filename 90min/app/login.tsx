@@ -4,12 +4,14 @@ import { useRouter } from 'expo-router';
 import { auth } from '../scripts/databases/firebase';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { theme, colors } from '../scripts/styles/theme';
+import Storage from '../scripts/utils/storage';
 
 export default function Login() {
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
+  const storage = new Storage();
 
   const handleLogin = async () => {
     setError(null);
@@ -20,7 +22,27 @@ export default function Login() {
     }
 
     try {
-      await signInWithEmailAndPassword(auth, email, senha);
+      const userCredential = await signInWithEmailAndPassword(auth, email, senha);
+      const user = userCredential.user;
+      
+      // Verifica se os dados do usuário já existem no storage
+      let userData = await storage.getContent("user");
+      
+      // Se não existirem dados ou o email não corresponder, atualiza/cria os dados
+      if (!userData || userData.email !== user.email) {
+        console.log("💾 Carregando/atualizando dados do usuário após login...");
+        userData = {
+          ...userData,
+          uid: user.uid,
+          email: user.email || email,
+          // Mantém nome e username se já existirem, caso contrário deixa vazio
+          nome: userData?.nome || '',
+          username: userData?.username || '',
+        };
+        await storage.saveContent('user', userData);
+        console.log("✅ Dados do usuário salvos/atualizados");
+      }
+      
       router.replace('/home');
     } catch (err: any) {
       let message = 'Erro no login, verifique suas credenciais';
