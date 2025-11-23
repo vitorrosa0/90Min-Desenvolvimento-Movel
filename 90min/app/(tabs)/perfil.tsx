@@ -1,5 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { View, Text, StyleSheet, FlatList, Image, TouchableOpacity } from 'react-native';
+import { useRouter } from 'expo-router';
+import { useFocusEffect } from '@react-navigation/native';
 import { colors, theme } from '@/scripts/styles/theme';
 import Storage from '@/scripts/utils/storage';
 import StorageFirebase from '../../scripts/databases/storageFirebase';
@@ -20,6 +22,7 @@ interface Evento {
 
 export default function PerfilScreen() {
   const storage = new Storage();
+  const router = useRouter();
   const [contents, setContents] = useState<Content[]>([]);
   const [nome, setNome] = useState("");
   const [userName, setUserName] = useState("");
@@ -53,19 +56,27 @@ export default function PerfilScreen() {
     });
   }, []);
 
+  const carregarUsuario = async () => {
+    try {
+      const user = await storage.getContent("user");
+      if (user?.nome) setNome(user.nome);
+      if (user?.username) setUserName(user.username);
+      if (user?.email) setEmail(user.email);
+    } catch (error) {
+      console.error("Erro ao carregar usuário:", error);
+    }
+  };
+
   useEffect(() => {
-    const carregarUsuario = async () => {
-      try {
-        const user = await storage.getContent("user");
-        if (user?.nome) setNome(user.nome);
-        if (user?.username) setUserName(user.username);
-        if (user?.email) setEmail(user.email);
-      } catch (error) {
-        console.error("Erro ao carregar usuário:", error);
-      }
-    };
     carregarUsuario();
   }, []);
+
+  // Recarrega os dados quando a tela recebe foco (quando volta da edição)
+  useFocusEffect(
+    useCallback(() => {
+      carregarUsuario();
+    }, [])
+  );
 
   const carregarMensagensDoEvento = async (eventId: string) => {
     const userId = auth.currentUser?.uid;
@@ -109,11 +120,19 @@ export default function PerfilScreen() {
       <View style={styles.header}>
         <Image source={require('../../assets/images/icon-perfil.png')} style={styles.avatar} />
         <View style={styles.userInfo}>
-          <Text style={styles.nome}>{nome}</Text>
+          <TouchableOpacity
+            onPress={() => router.push('/editar-perfil')}
+            activeOpacity={0.7}
+          >
+            <View style={styles.nomeContainer}>
+              <Text style={styles.nome}>{nome || 'Carregando...'}</Text>
+              <Text style={styles.editIcon}>✏️</Text>
+            </View>
+          </TouchableOpacity>
 
           <View style={styles.row}>
             <Text style={styles.detail}>Usuário: {userName}</Text>
-            <Text style={styles.detail}>  •  Email: {email}</Text>
+            <Text style={styles.detail}>Email: {email}</Text>
           </View>
         </View>
       </View>
@@ -175,10 +194,19 @@ const styles = StyleSheet.create({
     borderColor: colors.primary,
   },
   userInfo: { flex: 1 },
+  nomeContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 4,
+  },
   nome: {
     color: colors.textPrimary,
     fontSize: 22,
     fontWeight: "bold",
+    marginRight: 8,
+  },
+  editIcon: {
+    fontSize: 16,
   },
   row: { flexDirection: "row", flexWrap: "wrap" },
   detail: { color: colors.textSecondary, fontSize: 14 },
