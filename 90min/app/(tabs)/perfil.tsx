@@ -3,18 +3,28 @@ import { View, Text, StyleSheet, FlatList, Image, TouchableOpacity, Alert } from
 import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 import { colors, theme } from '@/scripts/styles/theme';
+import Storage from '@/scripts/utils/storage';
+import StorageFirebase from '../../scripts/databases/storageFirebase';
 import { auth, db } from "@/scripts/databases/firebase";
-import { collection, doc, getDoc, onSnapshot, query, where } from "firebase/firestore";
+import { collection, onSnapshot, query, where } from "firebase/firestore";
 import { signOut } from 'firebase/auth';
 
+const storageFirebase = new StorageFirebase();
+
+interface Content {
+  email: string;
+  nome: string;
+}
+
 interface Evento {
-  id: string;
+  id: string; // Este será o eventId (usado como ID do documento)
   eventName: string;
 }
 
 export default function PerfilScreen() {
+  const storage = new Storage();
   const router = useRouter();
-
+  const [contents, setContents] = useState<Content[]>([]);
   const [nome, setNome] = useState("");
   const [userName, setUserName] = useState("");
   const [email, setEmail] = useState("");
@@ -25,40 +35,15 @@ export default function PerfilScreen() {
   const [mensagens, setMensagens] = useState<string[]>([]);
   const [unsubscribeMsgs, setUnsubscribeMsgs] = useState<null | (() => void)>(null);
 
-  const carregarUsuario = async () => {
-    try {
-      const user = auth.currentUser;
-      if (!user) return;
-
-      const userRef = doc(db, "users", user.uid);
-      const snap = await getDoc(userRef);
-
-      if (snap.exists()) {
-        const data = snap.data();
-        setNome(data.nome || "");
-        setUserName(data.username || "");
-        setEmail(data.email || "");
-      }
-    } catch (error) {
-      console.error("Erro ao carregar usuário:", error);
-    }
-  };
-
   useEffect(() => {
-    carregarUsuario();
+    storageFirebase.listContents(setContents);
   }, []);
-
-  useFocusEffect(
-    useCallback(() => {
-      carregarUsuario();
-    }, [])
-  );
 
   useEffect(() => {
     const user = auth.currentUser;
     if (!user) return;
 
-    const ref = collection(db, "users", user.uid, "events");
+    const ref = collection(db, "user", user.uid, "events");
 
     return onSnapshot(ref, (snapshot) => {
       const evts: Evento[] = [];
@@ -71,6 +56,28 @@ export default function PerfilScreen() {
       setEventos(evts);
     });
   }, []);
+
+  const carregarUsuario = async () => {
+    try {
+      const user = await storage.getContent("user");
+      if (user?.nome) setNome(user.nome);
+      if (user?.username) setUserName(user.username);
+      if (user?.email) setEmail(user.email);
+    } catch (error) {
+      console.error("Erro ao carregar usuário:", error);
+    }
+  };
+
+  useEffect(() => {
+    carregarUsuario();
+  }, []);
+
+  // Recarrega os dados quando a tela recebe foco (quando volta da edição)
+  useFocusEffect(
+    useCallback(() => {
+      carregarUsuario();
+    }, [])
+  );
 
   const carregarMensagensDoEvento = async (eventId: string) => {
     const userId = auth.currentUser?.uid;
@@ -109,17 +116,52 @@ export default function PerfilScreen() {
     };
   }, [unsubscribeMsgs]);
 
-  const handleLogout = async () => {
+  const executarLogout = async () => {
     try {
-      if (unsubscribeMsgs) unsubscribeMsgs();
+      const userData = await storage.getContent("user");
+      if (unsubscribeMsgs) {
+        console.log("🔌 Cancelando subscriptions...");
+        unsubscribeMsgs();
+        setUnsubscribeMsgs(null);
+      }
+      
       await signOut(auth);
+      
+      const allKeys = await storage.getKeys();
+      for (const key of allKeys) {
+        if (key !== "user") {
+          await storage.deleteContent(key);
+        }
+      }
+      
+      if (userData) {
+        await storage.saveContent("user", userData);
+      }
 
+      const currentUser = auth.currentUser;
+
+      await new Promise(resolve => setTimeout(resolve, 300));
+      
       router.replace('/login');
-      setTimeout(() => router.push('/login'), 200);
-
+      
+      setTimeout(() => {
+        router.push('/login');
+      }, 500);
+      
     } catch (error: any) {
-      Alert.alert('Erro', error.message || 'Não foi possível sair.');
+      Alert.alert('Erro', `Não foi possível fazer logout: ${error.message || 'Erro desconhecido'}`);
     }
+  };
+
+  const handleLogout = () => {
+    executarLogout();
+  };
+
+  const navegarParaChat = (eventId: string, eventName: string) => {
+    router.push({
+      pathname: "/aovivo",
+      params: { eventId, eventName },
+    });
   };
 
   return (
@@ -129,19 +171,24 @@ export default function PerfilScreen() {
         <View style={styles.userInfo}>
           <View style={styles.nomeContainer}>
             <Text style={styles.nome}>{userName || nome || 'Carregando...'}</Text>
-
-            <TouchableOpacity onPress={() => router.push('/editar-perfil')} activeOpacity={0.7}>
+            <TouchableOpacity
+              onPress={() => router.push('/editar-perfil')}
+              activeOpacity={0.7}
+            >
               <Text style={styles.editIcon}>✏️</Text>
             </TouchableOpacity>
-
-            <TouchableOpacity onPress={handleLogout} activeOpacity={0.7} style={styles.logoutButton}>
+            <TouchableOpacity
+              onPress={handleLogout}
+              activeOpacity={0.7}
+              style={styles.logoutButton}
+            >
               <Text style={styles.logoutText}>Sair</Text>
             </TouchableOpacity>
           </View>
 
           <View style={styles.row}>
-            <Text style={styles.detail}>Nome: {nome} </Text>
-            <Text style={styles.detail}> Email: {email}</Text>
+            <Text style={styles.detail}>Nome: {nome || 'Não informado'}</Text>
+            <Text style={styles.detail}>Email: {email}</Text>
           </View>
         </View>
       </View>
@@ -153,12 +200,23 @@ export default function PerfilScreen() {
         data={eventos}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
-          <TouchableOpacity
-            style={styles.card}
-            activeOpacity={0.8}
-            onPress={() => carregarMensagensDoEvento(item.id)}
-          >
-            <Text style={styles.cardText}>{item.eventName}</Text>
+          <View style={styles.card}>
+            <View style={styles.cardHeader}>
+              <TouchableOpacity
+                activeOpacity={0.8}
+                onPress={() => carregarMensagensDoEvento(item.id)}
+                style={{ flex: 1 }}
+              >
+                <Text style={styles.cardText}>{item.eventName}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.chatButton}
+                onPress={() => navegarParaChat(item.id, item.eventName)}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.chatButtonText}>💬 Ir ao chat</Text>
+              </TouchableOpacity>
+            </View>
 
             {eventoSelecionado === item.id && (
               <View style={{ marginTop: 10 }}>
@@ -175,7 +233,7 @@ export default function PerfilScreen() {
                 )}
               </View>
             )}
-          </TouchableOpacity>
+          </View>
         )}
       />
     </View>
@@ -248,9 +306,28 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     marginBottom: 10,
   },
+  cardHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 4,
+  },
   cardText: {
     color: colors.textPrimary,
     fontSize: 16,
     fontWeight: "500",
+    flex: 1,
+  },
+  chatButton: {
+    backgroundColor: colors.primary,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+    marginLeft: 8,
+  },
+  chatButtonText: {
+    color: "#fff",
+    fontSize: 12,
+    fontWeight: "600",
   },
 });

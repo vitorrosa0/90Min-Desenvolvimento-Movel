@@ -25,22 +25,18 @@ export default function Login() {
       const userCredential = await signInWithEmailAndPassword(auth, email, senha);
       const user = userCredential.user;
       
-      // Verifica se os dados do usuário já existem no storage
       let userData = await storage.getContent("user");
       
-      // Se não existirem dados ou o email não corresponder, atualiza/cria os dados
       if (!userData || userData.email !== user.email) {
         console.log("💾 Carregando/atualizando dados do usuário após login...");
         userData = {
           ...userData,
           uid: user.uid,
           email: user.email || email,
-          // Mantém nome e username se já existirem, caso contrário deixa vazio
           nome: userData?.nome || '',
           username: userData?.username || '',
         };
         await storage.saveContent('user', userData);
-        console.log("✅ Dados do usuário salvos/atualizados");
       }
       
       router.replace('/home');

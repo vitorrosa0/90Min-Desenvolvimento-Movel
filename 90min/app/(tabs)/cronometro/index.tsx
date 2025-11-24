@@ -3,7 +3,7 @@ import { View, Text, StyleSheet } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { colors } from "@/scripts/styles/theme";
 import { auth, db } from "@/scripts/databases/firebase";
-import { addDoc, collection } from "firebase/firestore";
+import { doc, setDoc } from "firebase/firestore";
 
 export default function CronometroInicioEvento() {
   const { eventId, eventName } = useLocalSearchParams();
@@ -14,12 +14,20 @@ export default function CronometroInicioEvento() {
     const userId = auth.currentUser?.uid;
     if (!userId || !eventId || !eventName) return;
 
-    await addDoc(collection(db, "events"), {
-      userId,
-      eventId,
-      eventName,
-      joinedAt: new Date(),
-    });
+    try {
+      // Salva o evento na subcoleção do usuário para aparecer em "Eventos Recentes"
+      // Usa eventId como ID do documento para evitar duplicatas e facilitar busca
+      const eventRef = doc(db, "user", userId, "events", String(eventId));
+      await setDoc(eventRef, {
+        eventName: String(eventName),
+        eventId: String(eventId),
+        joinedAt: new Date(),
+      }, { merge: true }); // merge: true evita sobrescrever dados se já existir
+      
+      console.log("✅ Evento salvo nos eventos recentes:", eventName);
+    } catch (error) {
+      console.error("❌ Erro ao salvar evento:", error);
+    }
   }
 
   useEffect(() => {
