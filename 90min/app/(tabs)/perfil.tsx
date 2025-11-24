@@ -187,8 +187,10 @@ export default function PerfilScreen() {
           </View>
 
           <View style={styles.row}>
-            <Text style={styles.detail}>Nome: {nome || 'Não informado'}</Text>
-            <Text style={styles.detail}>Email: {email}</Text>
+            <Text style={styles.detail}>
+              Nome: {nome || 'Não informado'}{"\n"}
+              Email: {email}
+            </Text>
           </View>
         </View>
       </View>
