@@ -35,6 +35,7 @@ export default function HomeScreen() {
 
   const handleScanQRCode = () => {
     router.push("../cronometro");
+    //router.push("../scan");
   };
 
   if (loading) {
