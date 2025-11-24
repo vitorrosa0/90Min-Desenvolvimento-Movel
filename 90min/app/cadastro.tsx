@@ -1,12 +1,15 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
 import { MaskedTextInput } from 'react-native-mask-text';
+import Toast from 'react-native-toast-message';
+
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { auth, db } from '@/scripts/databases/firebase';
-import { theme, colors } from '@/scripts/styles/theme';
 import { doc, setDoc } from 'firebase/firestore';
 import Storage from '@/scripts/utils/storage';
+
+import { theme, colors } from '@/scripts/styles/theme';
 
 export default function Cadastro() {
   const [nome, setNome] = useState('');
@@ -15,6 +18,7 @@ export default function Cadastro() {
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
   const [confirmarSenha, setConfirmarSenha] = useState('');
+
   const router = useRouter();
   const storage = new Storage();
 
@@ -22,37 +26,53 @@ export default function Cadastro() {
     const [dia, mes, ano] = data.split('/');
     const nascimento = new Date(`${ano}-${mes}-${dia}`);
     const hoje = new Date();
+
     let idade = hoje.getFullYear() - nascimento.getFullYear();
     const m = hoje.getMonth() - nascimento.getMonth();
+
     if (m < 0 || (m === 0 && hoje.getDate() < nascimento.getDate())) idade--;
+
     return idade;
   };
 
   const handleCadastro = async () => {
-    console.log("➡️ Iniciando cadastro...", { nome, username, dataNascimento, email, senha, confirmarSenha });
-
     if (!nome || !username || !dataNascimento || !email || !senha || !confirmarSenha) {
-      console.log("Preencha todos os campos!")
-      return;
+      return Toast.show({
+        type: 'error',
+        text1: 'Campos incompletos!',
+        text2: 'Preencha todos os campos antes de prosseguir.',
+      });
     }
 
     const idade = calcularIdade(dataNascimento);
     if (idade < 18) {
-      console.log("Preencha todos os campos!")
-      Alert.alert('Erro', 'Você precisa ter pelo menos 18 anos para se cadastrar.');
-      return;
+      return Toast.show({
+        type: 'error',
+        text1: 'Idade insuficiente!',
+        text2: 'Você precisa ter pelo menos 18 anos para se cadastrar.',
+      });
     }
 
+        if (senha.length < 6) {
+      return Toast.show({
+        type: 'error',
+        text1: 'Senha muito curta!',
+        text2: 'A senha deve ter pelo menos 6 caracteres.',
+      });
+    }
+    
     if (senha !== confirmarSenha) {
-      console.log("Preencha todos os campos!")
-      Alert.alert('Erro', 'As senhas não conferem!');
-      return;
+      return Toast.show({
+        type: 'error',
+        text1: 'Senhas não conferem!',
+        text2: 'Digite a mesma senha nos dois campos.',
+      });
     }
 
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, senha);
       const user = userCredential.user;
-      console.log("✅ Usuário criado no Firebase:", user.uid);
+
       await setDoc(doc(db, "users", user.uid), {
         nome,
         username,
@@ -70,21 +90,30 @@ export default function Cadastro() {
         createdAt: new Date().toISOString(),
       });
 
-      console.log("💾 Dados do usuário salvos localmente!");
-      const userlog = await storage.getContent('user')
-      console.log(userlog)
+      Toast.show({
+        type: 'success',  
+        text1: 'Conta criada!',
+        text2: 'Você já pode fazer login.',
+      });
 
-      router.replace('/login');
+      setTimeout(() => {
+        router.replace('/login');
+      }, 1200);
+
     } catch (error: any) {
-      console.error("❌ Erro no Firebase Auth:", error);
-      Alert.alert('Erro no cadastro', error.message);
+      Toast.show({
+        type: 'error',
+        text1: 'Erro no cadastro',
+        text2: error.message,
+      });
     }
   };
 
   return (
     <View style={[theme.screen, { justifyContent: 'center', paddingVertical: 40 }]}>
-      <Text style={[theme.title, { textAlign: 'center' }]}>Crie sua conta para começar a aproveitar todos os recursos do nosso app! </Text>
-      <Text style={[theme.title, { textAlign: 'center' }]}>É rápido, seguro e você terá acesso personalizado ao conteúdo.</Text>
+      <Text style={[theme.title, { textAlign: 'center' }]}>
+        Crie sua conta para começar a aproveitar todos os recursos do nosso app!
+      </Text>
 
       <MaskedTextInput
         style={[theme.input, { borderColor: colors.primary }]}
@@ -93,6 +122,7 @@ export default function Cadastro() {
         value={nome}
         onChangeText={setNome}
       />
+
       <MaskedTextInput
         mask="99/99/9999"
         style={[theme.input, { borderColor: colors.primary }]}
@@ -102,6 +132,7 @@ export default function Cadastro() {
         onChangeText={setDataNascimento}
         keyboardType="numeric"
       />
+
       <MaskedTextInput
         style={[theme.input, { borderColor: colors.primary }]}
         placeholder="Username"
@@ -109,6 +140,7 @@ export default function Cadastro() {
         value={username}
         onChangeText={setUsername}
       />
+
       <TextInput
         style={[theme.input, { borderColor: colors.primary }]}
         placeholder="Email"
@@ -118,6 +150,7 @@ export default function Cadastro() {
         keyboardType="email-address"
         autoCapitalize="none"
       />
+
       <TextInput
         style={[theme.input, { borderColor: colors.primary }]}
         placeholder="Senha"
@@ -126,6 +159,7 @@ export default function Cadastro() {
         onChangeText={setSenha}
         secureTextEntry
       />
+
       <TextInput
         style={[theme.input, { borderColor: colors.primary }]}
         placeholder="Confirme a Senha"

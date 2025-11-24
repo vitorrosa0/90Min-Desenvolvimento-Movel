@@ -5,6 +5,7 @@ import { auth } from '../scripts/databases/firebase';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { theme, colors } from '../scripts/styles/theme';
 import Storage from '../scripts/utils/storage';
+import Toast from 'react-native-toast-message';
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -24,11 +25,10 @@ export default function Login() {
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, senha);
       const user = userCredential.user;
-      
+
       let userData = await storage.getContent("user");
-      
+
       if (!userData || userData.email !== user.email) {
-        console.log("💾 Carregando/atualizando dados do usuário após login...");
         userData = {
           ...userData,
           uid: user.uid,
@@ -38,7 +38,13 @@ export default function Login() {
         };
         await storage.saveContent('user', userData);
       }
-      
+
+      Toast.show({
+        type: 'success',
+        text1: 'Login realizado!',
+        text2: 'Seja bem-vindo!',
+      });
+
       router.replace('/home');
     } catch (err: any) {
       let message = 'Erro no login, verifique suas credenciais';
@@ -52,7 +58,7 @@ export default function Login() {
   return (
     <View style={[theme.screen, { justifyContent: 'center', paddingVertical: 40 }]}>
       <View style={{ alignItems: 'center' }}>
-        <Image 
+        <Image
           source={require('../assets/images/icon-removebg-preview.png')}
           style={{ width: 220, height: 220, resizeMode: 'contain' }}
         />
