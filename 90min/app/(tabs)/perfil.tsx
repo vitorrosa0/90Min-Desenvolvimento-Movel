@@ -209,13 +209,13 @@ export default function PerfilScreen() {
               >
                 <Text style={styles.cardText}>{item.eventName}</Text>
               </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.chatButton}
-                onPress={() => navegarParaChat(item.id, item.eventName)}
-                activeOpacity={0.8}
-              >
-                <Text style={styles.chatButtonText}>💬 Ir ao chat</Text>
-              </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.chatButton}
+                  onPress={() => navegarParaChat(item.id, item.eventName)}
+                  activeOpacity={0.8}
+                >
+                  <Text style={styles.chatButtonText}>🔴 Ao vivo</Text>
+                </TouchableOpacity>
             </View>
 
             {eventoSelecionado === item.id && (
@@ -319,14 +319,15 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   chatButton: {
-    backgroundColor: colors.primary,
+    borderWidth: 1,
+    borderColor: colors.error,
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 8,
     marginLeft: 8,
   },
   chatButtonText: {
-    color: "#fff",
+    color: colors.error,
     fontSize: 12,
     fontWeight: "600",
   },
