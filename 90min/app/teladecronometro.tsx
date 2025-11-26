@@ -4,13 +4,12 @@ import { useRouter } from "expo-router";
 import { colors } from "@/scripts/styles/theme";
 
 export default function CronometroInicioEvento() {
-  // ⏱ Tempo inicial (10 segundos para teste, pode ajustar para 900 = 15min)
   const [timeLeft, setTimeLeft] = useState(10);
   const router = useRouter();
 
   useEffect(() => {
     if (timeLeft === 0) {
-      router.replace("/aovivo"); // redireciona para a tela de transmissão ao vivo
+      router.replace("/aovivo"); 
       return;
     }
 
