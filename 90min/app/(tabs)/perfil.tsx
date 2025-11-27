@@ -17,7 +17,7 @@ interface Content {
 }
 
 interface Evento {
-  id: string; // Este será o eventId (usado como ID do documento)
+  id: string;
   eventName: string;
 }
 
@@ -61,7 +61,6 @@ export default function PerfilScreen() {
     try {
       const currentUser = auth.currentUser;
       
-      // Tenta buscar do Firestore primeiro
       if (currentUser) {
         try {
           const userRef = doc(db, "users", currentUser.uid);
@@ -70,12 +69,10 @@ export default function PerfilScreen() {
           if (userSnap.exists()) {
             const userData = userSnap.data();
             
-            // Atualiza os estados com os dados do Firestore
             if (userData?.nome) setNome(userData.nome);
             if (userData?.username) setUserName(userData.username);
             if (userData?.email) setEmail(userData.email);
             
-            // Sincroniza com AsyncStorage para manter consistência
             await storage.saveContent('user', {
               uid: currentUser.uid,
               nome: userData.nome || '',
@@ -83,28 +80,26 @@ export default function PerfilScreen() {
               email: userData.email || currentUser.email || '',
             });
             
-            console.log("✅ Dados carregados do Firestore");
+            console.log("Dados carregados do Firestore");
             return;
           }
         } catch (firestoreError) {
-          console.warn("⚠️ Erro ao buscar do Firestore, tentando AsyncStorage:", firestoreError);
+          console.warn("Erro ao buscar do Firestore, tentando AsyncStorage:", firestoreError);
         }
       }
       
-      // Fallback: busca do AsyncStorage se Firestore falhar ou não tiver dados
       const user = await storage.getContent("user");
       if (user) {
         if (user?.nome) setNome(user.nome);
         if (user?.username) setUserName(user.username);
         if (user?.email) setEmail(user.email);
-        console.log("✅ Dados carregados do AsyncStorage (fallback)");
+        console.log("Dados carregados do AsyncStorage (fallback)");
       } else if (currentUser) {
-        // Se não encontrar em nenhum lugar, usa dados básicos do auth
         setEmail(currentUser.email || '');
-        console.log("⚠️ Usando dados básicos do auth");
+        console.log("Usando dados básicos do auth");
       }
     } catch (error) {
-      console.error("❌ Erro ao carregar usuário:", error);
+      console.error("Erro ao carregar usuário:", error);
     }
   };
 
@@ -112,7 +107,6 @@ export default function PerfilScreen() {
     carregarUsuario();
   }, []);
 
-  // Recarrega os dados quando a tela recebe foco (quando volta da edição)
   useFocusEffect(
     useCallback(() => {
       carregarUsuario();
@@ -160,7 +154,7 @@ export default function PerfilScreen() {
     try {
       const userData = await storage.getContent("user");
       if (unsubscribeMsgs) {
-        console.log("🔌 Cancelando subscriptions...");
+        console.log("Cancelando subscriptions...");
         unsubscribeMsgs();
         setUnsubscribeMsgs(null);
       }

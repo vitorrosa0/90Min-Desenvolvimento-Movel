@@ -20,7 +20,6 @@ export default function EditarPerfil() {
       try {
         const currentUser = auth.currentUser;
         
-        // Tenta buscar do Firestore primeiro
         if (currentUser) {
           try {
             const userRef = doc(db, "users", currentUser.uid);
@@ -31,7 +30,6 @@ export default function EditarPerfil() {
               setNome(userData.nome || '');
               setUsername(userData.username || '');
               
-              // Sincroniza com AsyncStorage
               await storage.saveContent('user', {
                 uid: currentUser.uid,
                 nome: userData.nome || '',
@@ -43,11 +41,10 @@ export default function EditarPerfil() {
               return;
             }
           } catch (firestoreError) {
-            console.warn("⚠️ Erro ao buscar do Firestore, tentando AsyncStorage:", firestoreError);
+            console.warn("Erro ao buscar do Firestore, tentando AsyncStorage:", firestoreError);
           }
         }
         
-        // Fallback: busca do AsyncStorage
         const user = await storage.getContent("user");
         if (user) {
           setNome(user.nome || '');
@@ -80,7 +77,6 @@ export default function EditarPerfil() {
         return;
       }
 
-      // Atualiza no Firestore
       const userRef = doc(db, "users", user.uid);
       await updateDoc(userRef, {
         nome: nome.trim(),
@@ -88,7 +84,6 @@ export default function EditarPerfil() {
         updatedAt: new Date().toISOString(),
       });
 
-      // Atualiza no AsyncStorage (mantém para compatibilidade)
       const userData = await storage.getContent("user");
       await storage.saveContent('user', {
         ...userData,
@@ -97,12 +92,12 @@ export default function EditarPerfil() {
         updatedAt: new Date().toISOString(),
       });
 
-      console.log("✅ Dados atualizados com sucesso no Firestore e AsyncStorage!");
+      console.log("Dados atualizados com sucesso no Firestore e AsyncStorage!");
       
       setLoading(false);
       router.push('/(tabs)/perfil');
     } catch (error: any) {
-      console.error("❌ Erro ao salvar alterações:", error);
+      console.error("Erro ao salvar alterações:", error);
       Alert.alert('Erro', error.message || 'Não foi possível salvar as alterações.');
       setLoading(false);
     }
