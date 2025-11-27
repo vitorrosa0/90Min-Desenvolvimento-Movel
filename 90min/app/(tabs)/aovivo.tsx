@@ -16,6 +16,10 @@ type Mensagem = {
 export default function ChatAoVivo() {
   const { eventId, eventName } = useLocalSearchParams();
 
+  const eventoSelecionado = eventId && eventName && 
+    String(eventId).trim() !== '' && 
+    String(eventName).trim() !== '';
+
   const [mensagens, setMensagens] = useState<Mensagem[]>([]);
   const [mensagem, setMensagem] = useState('');
 
@@ -34,11 +38,34 @@ export default function ChatAoVivo() {
   };
 
   useEffect(() => {
+    if (!eventoSelecionado) return;
+    
     dispararMensagensGradualmente();
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current);
     };
-  }, []);
+  }, [eventoSelecionado]);
+
+  if (!eventoSelecionado) {
+    return (
+      <View style={{ 
+        flex: 1, 
+        backgroundColor: '#121212', 
+        justifyContent: 'center', 
+        alignItems: 'center',
+        padding: 20 
+      }}>
+        <Text style={{ 
+          color: '#fff', 
+          fontSize: 18, 
+          textAlign: 'center',
+          fontWeight: '500'
+        }}>
+          Nenhum evento selecionado
+        </Text>
+      </View>
+    );
+  }
 
   const enviarMensagem = async () => {
     if (mensagem.trim().length === 0) return;
@@ -57,7 +84,7 @@ export default function ChatAoVivo() {
 
     await addDoc(collection(db, "messages"), {
       userId,
-      eventId,
+      eventId: String(eventId),
       lastMessage: mensagem,
       sentAt: new Date(),
     });
@@ -70,7 +97,7 @@ export default function ChatAoVivo() {
     >
       <View style={{ padding: 16, backgroundColor: '#1f1f1f', borderBottomWidth: 1, borderBottomColor: '#333' }}>
         <Text style={{ color: '#fff', fontSize: 20, fontWeight: 'bold', textAlign: 'center' }}>
-          📡 {eventName}
+          📡 {String(eventName)}
         </Text>
       </View>
 
