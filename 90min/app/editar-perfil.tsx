@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity, Alert, StyleSheet, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
-import { auth } from '@/scripts/databases/firebase';
+import { auth, db } from '@/scripts/databases/firebase';
+import { doc, updateDoc, getDoc } from 'firebase/firestore';
 import { theme, colors } from '@/scripts/styles/theme';
 import Storage from '@/scripts/utils/storage';
 
@@ -17,6 +18,36 @@ export default function EditarPerfil() {
   useEffect(() => {
     const carregarDadosUsuario = async () => {
       try {
+        const currentUser = auth.currentUser;
+        
+        // Tenta buscar do Firestore primeiro
+        if (currentUser) {
+          try {
+            const userRef = doc(db, "users", currentUser.uid);
+            const userSnap = await getDoc(userRef);
+            
+            if (userSnap.exists()) {
+              const userData = userSnap.data();
+              setNome(userData.nome || '');
+              setUsername(userData.username || '');
+              
+              // Sincroniza com AsyncStorage
+              await storage.saveContent('user', {
+                uid: currentUser.uid,
+                nome: userData.nome || '',
+                username: userData.username || '',
+                email: userData.email || currentUser.email || '',
+              });
+              
+              setCarregando(false);
+              return;
+            }
+          } catch (firestoreError) {
+            console.warn("⚠️ Erro ao buscar do Firestore, tentando AsyncStorage:", firestoreError);
+          }
+        }
+        
+        // Fallback: busca do AsyncStorage
         const user = await storage.getContent("user");
         if (user) {
           setNome(user.nome || '');
@@ -49,6 +80,15 @@ export default function EditarPerfil() {
         return;
       }
 
+      // Atualiza no Firestore
+      const userRef = doc(db, "users", user.uid);
+      await updateDoc(userRef, {
+        nome: nome.trim(),
+        username: username.trim(),
+        updatedAt: new Date().toISOString(),
+      });
+
+      // Atualiza no AsyncStorage (mantém para compatibilidade)
       const userData = await storage.getContent("user");
       await storage.saveContent('user', {
         ...userData,
@@ -57,7 +97,7 @@ export default function EditarPerfil() {
         updatedAt: new Date().toISOString(),
       });
 
-      console.log("✅ Dados atualizados com sucesso!");
+      console.log("✅ Dados atualizados com sucesso no Firestore e AsyncStorage!");
       
       setLoading(false);
       router.push('/(tabs)/perfil');

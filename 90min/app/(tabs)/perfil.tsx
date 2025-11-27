@@ -6,7 +6,7 @@ import { colors, theme } from '@/scripts/styles/theme';
 import Storage from '@/scripts/utils/storage';
 import StorageFirebase from '../../scripts/databases/storageFirebase';
 import { auth, db } from "@/scripts/databases/firebase";
-import { collection, onSnapshot, query, where } from "firebase/firestore";
+import { collection, onSnapshot, query, where, doc, getDoc } from "firebase/firestore";
 import { signOut } from 'firebase/auth';
 
 const storageFirebase = new StorageFirebase();
@@ -59,12 +59,52 @@ export default function PerfilScreen() {
 
   const carregarUsuario = async () => {
     try {
+      const currentUser = auth.currentUser;
+      
+      // Tenta buscar do Firestore primeiro
+      if (currentUser) {
+        try {
+          const userRef = doc(db, "users", currentUser.uid);
+          const userSnap = await getDoc(userRef);
+          
+          if (userSnap.exists()) {
+            const userData = userSnap.data();
+            
+            // Atualiza os estados com os dados do Firestore
+            if (userData?.nome) setNome(userData.nome);
+            if (userData?.username) setUserName(userData.username);
+            if (userData?.email) setEmail(userData.email);
+            
+            // Sincroniza com AsyncStorage para manter consistência
+            await storage.saveContent('user', {
+              uid: currentUser.uid,
+              nome: userData.nome || '',
+              username: userData.username || '',
+              email: userData.email || currentUser.email || '',
+            });
+            
+            console.log("✅ Dados carregados do Firestore");
+            return;
+          }
+        } catch (firestoreError) {
+          console.warn("⚠️ Erro ao buscar do Firestore, tentando AsyncStorage:", firestoreError);
+        }
+      }
+      
+      // Fallback: busca do AsyncStorage se Firestore falhar ou não tiver dados
       const user = await storage.getContent("user");
-      if (user?.nome) setNome(user.nome);
-      if (user?.username) setUserName(user.username);
-      if (user?.email) setEmail(user.email);
+      if (user) {
+        if (user?.nome) setNome(user.nome);
+        if (user?.username) setUserName(user.username);
+        if (user?.email) setEmail(user.email);
+        console.log("✅ Dados carregados do AsyncStorage (fallback)");
+      } else if (currentUser) {
+        // Se não encontrar em nenhum lugar, usa dados básicos do auth
+        setEmail(currentUser.email || '');
+        console.log("⚠️ Usando dados básicos do auth");
+      }
     } catch (error) {
-      console.error("Erro ao carregar usuário:", error);
+      console.error("❌ Erro ao carregar usuário:", error);
     }
   };
 
@@ -157,13 +197,6 @@ export default function PerfilScreen() {
     executarLogout();
   };
 
-  const navegarParaChat = (eventId: string, eventName: string) => {
-    router.push({
-      pathname: "/aovivo",
-      params: { eventId, eventName },
-    });
-  };
-
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -211,13 +244,6 @@ export default function PerfilScreen() {
               >
                 <Text style={styles.cardText}>{item.eventName}</Text>
               </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.chatButton}
-                  onPress={() => navegarParaChat(item.id, item.eventName)}
-                  activeOpacity={0.8}
-                >
-                  <Text style={styles.chatButtonText}>🔴 Ao vivo</Text>
-                </TouchableOpacity>
             </View>
 
             {eventoSelecionado === item.id && (
@@ -309,9 +335,6 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   cardHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
     marginBottom: 4,
   },
   cardText: {
@@ -319,18 +342,5 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "500",
     flex: 1,
-  },
-  chatButton: {
-    borderWidth: 1,
-    borderColor: colors.error,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
-    marginLeft: 8,
-  },
-  chatButtonText: {
-    color: colors.error,
-    fontSize: 12,
-    fontWeight: "600",
   },
 });
