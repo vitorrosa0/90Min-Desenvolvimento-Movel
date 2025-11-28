@@ -69,7 +69,7 @@ export default function HomeScreen() {
 
         <FlatList
           data={jogos}
-          scrollEnabled={false} // 👈 evita conflito com ScrollView
+          scrollEnabled={false}
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => {
             const partida = item.jogo;

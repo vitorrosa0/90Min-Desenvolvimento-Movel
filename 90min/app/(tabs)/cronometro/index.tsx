@@ -15,14 +15,12 @@ export default function CronometroInicioEvento() {
     if (!userId || !eventId || !eventName) return;
 
     try {
-      // Salva o evento na subcoleção do usuário para aparecer em "Eventos Recentes"
-      // Usa eventId como ID do documento para evitar duplicatas e facilitar busca
       const eventRef = doc(db, "user", userId, "events", String(eventId));
       await setDoc(eventRef, {
         eventName: String(eventName),
         eventId: String(eventId),
         joinedAt: new Date(),
-      }, { merge: true }); // merge: true evita sobrescrever dados se já existir
+      }, { merge: true }); 
       
       console.log("✅ Evento salvo nos eventos recentes:", eventName);
     } catch (error) {

@@ -1,11 +1,9 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { View, Text, TextInput, TouchableOpacity, FlatList, KeyboardAvoidingView, Platform } from 'react-native';
 import { gerarMensagensMock } from '../mockMessages';
 import { useLocalSearchParams } from 'expo-router';
 import { auth, db } from "@/scripts/databases/firebase";
 import { collection, addDoc } from "firebase/firestore";
-
-const MOCK_MENSAGENS_INICIAIS = gerarMensagensMock(100);
 
 type Mensagem = {
   id: string;
@@ -16,8 +14,10 @@ type Mensagem = {
 export default function ChatAoVivo() {
   const { eventId, eventName } = useLocalSearchParams();
 
-  const eventoSelecionado = eventId && eventName && 
-    String(eventId).trim() !== '' && 
+  const eventoSelecionado =
+    eventId &&
+    eventName &&
+    String(eventId).trim() !== '' &&
     String(eventName).trim() !== '';
 
   const [mensagens, setMensagens] = useState<Mensagem[]>([]);
@@ -26,38 +26,92 @@ export default function ChatAoVivo() {
   const indexRef = useRef(0);
   const timerRef = useRef<number | null>(null);
 
-  const dispararMensagensGradualmente = () => {
-    if (indexRef.current >= MOCK_MENSAGENS_INICIAIS.length) return;
+  const id = String(eventId);
+  const name = String(eventName);
 
-    setMensagens(prev => [...prev, MOCK_MENSAGENS_INICIAIS[indexRef.current]]);
-    indexRef.current++;
+  const MOCK_MENSAGENS_INICIAIS = useMemo(() => {
+    if (!id || !name) return [];
 
-    const delay = Math.floor(Math.random() * 3000) + 2000;
+    console.log("Gerando mock apenas uma vez para evento:", id);
+    const raw = gerarMensagensMock(50);
 
-    timerRef.current = setTimeout(dispararMensagensGradualmente, delay);
-  };
+    const unique = new Map();
+    raw.forEach((m) => {
+      const uniqueId = `${id}-${m.id}`;
+      unique.set(uniqueId, { ...m, id: uniqueId });
+    });
+
+    return Array.from(unique.values());
+  }, [id, name]); 
 
   useEffect(() => {
-    if (!eventoSelecionado) return;
+    console.log("Resetando chat para evento:", id);
     
-    dispararMensagensGradualmente();
-    return () => {
-      if (timerRef.current) clearTimeout(timerRef.current);
-    };
-  }, [eventoSelecionado]);
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+      timerRef.current = null;
+    }
 
+    indexRef.current = 0;
+    setMensagens([]);
+    setMensagem('');
+
+    if (!eventoSelecionado || MOCK_MENSAGENS_INICIAIS.length === 0) {
+      return;
+    }
+
+    const currentEventId = id; 
+    
+    const dispararMensagensGradualmente = () => {
+      if (currentEventId !== id) {
+        console.log("Evento mudou durante o disparo, cancelando...");
+        return;
+      }
+
+      if (indexRef.current >= MOCK_MENSAGENS_INICIAIS.length) return;
+
+      const mensagemAtual = MOCK_MENSAGENS_INICIAIS[indexRef.current];
+      
+      setMensagens(prev => {
+        const jaExiste = prev.some(m => m.id === mensagemAtual.id);
+        if (jaExiste) {
+          console.warn("Tentativa de adicionar mensagem duplicada:", mensagemAtual.id);
+          indexRef.current++;
+          return prev;
+        }
+        return [...prev, mensagemAtual];
+      });
+      
+      indexRef.current++;
+
+      const delay = Math.floor(Math.random() * 3000) + 2000;
+      timerRef.current = setTimeout(dispararMensagensGradualmente, delay);
+    };
+
+    const timeoutId = setTimeout(() => {
+      dispararMensagensGradualmente();
+    }, 150);
+
+    return () => {
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+        timerRef.current = null;
+      }
+      clearTimeout(timeoutId);
+    };
+  }, [id, eventoSelecionado, MOCK_MENSAGENS_INICIAIS]); 
   if (!eventoSelecionado) {
     return (
-      <View style={{ 
-        flex: 1, 
-        backgroundColor: '#121212', 
-        justifyContent: 'center', 
+      <View style={{
+        flex: 1,
+        backgroundColor: '#121212',
+        justifyContent: 'center',
         alignItems: 'center',
-        padding: 20 
+        padding: 20
       }}>
-        <Text style={{ 
-          color: '#fff', 
-          fontSize: 18, 
+        <Text style={{
+          color: '#fff',
+          fontSize: 18,
           textAlign: 'center',
           fontWeight: '500'
         }}>
@@ -71,7 +125,7 @@ export default function ChatAoVivo() {
     if (mensagem.trim().length === 0) return;
 
     const novaMensagem: Mensagem = {
-      id: Date.now().toString(),
+      id: `${id}-${crypto.randomUUID()}`,
       autor: "Você",
       texto: mensagem,
     };
@@ -103,7 +157,7 @@ export default function ChatAoVivo() {
 
       <FlatList
         data={mensagens}
-        keyExtractor={(item) => item.id}
+        keyExtractor={(item, index) => `${id}-${item.id}-${index}`}
         renderItem={({ item }) => (
           <View
             style={{

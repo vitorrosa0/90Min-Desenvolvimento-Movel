@@ -34,19 +34,12 @@ export function gerarMensagensMock(quantidade) {
   ];
 
   const mensagens = [];
-  const now = new Date().getTime();
 
-  for (let i = 1; i <= quantidade; i++) {
-    const autor = nomes[Math.floor(Math.random() * nomes.length)];
-    const texto = textosVariados[Math.floor(Math.random() * textosVariados.length)];
-    
-
-    const timestamp = now - (quantidade - i) * 15000;
-
+  for (let i = 0; i < quantidade; i++) {
     mensagens.push({
-      id: String(timestamp) + i, // ID único
-      autor: autor,
-      texto: texto,
+      id: crypto.randomUUID(),
+      autor: nomes[Math.floor(Math.random() * nomes.length)],
+      texto: textosVariados[Math.floor(Math.random() * textosVariados.length)],
     });
   }
 
