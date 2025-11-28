@@ -158,27 +158,4 @@ npm run web
 - ✅ Perfil de usuário personalizável
 - ✅ Histórico de eventos recentes
 
-## 🔐 Configuração do Firebase
-
-O projeto utiliza Firebase para autenticação e banco de dados. Certifique-se de configurar:
-
-1. Crie um projeto no [Firebase Console](https://console.firebase.google.com/)
-2. Configure a autenticação (Email/Password)
-3. Crie um banco de dados Firestore
-4. Atualize as credenciais em `90min/scripts/databases/firebase.js`
-
-## 🤝 Contribuindo
-
-Contribuições são bem-vindas! Sinta-se à vontade para abrir issues ou pull requests.
-
-## 📄 Licença
-
-Este projeto é privado.
-
-## 👥 Autores
-
-- Desenvolvido como trabalho acadêmico de Desenvolvimento Mobile
-
----
-
 **Nota**: Certifique-se de que o backend está rodando antes de iniciar o aplicativo mobile, pois o app depende da API para buscar os dados dos jogos.
